@@ -1,6 +1,9 @@
 # Load libraries
 packages <- c(
   "shiny", "rsconnect", "googlesheets4", "leaflet",
+  "htmltools", "viridisLite", "dplyr", "DT", "curl"# Load libraries
+packages <- c(
+  "shiny", "rsconnect", "googlesheets4", "leaflet",
   "htmltools", "viridisLite", "dplyr", "DT", "curl"
 )
 
@@ -28,9 +31,12 @@ excluded_filter_columns <- c(
   "Sample_lat",
   "Sample_lon",
   "Sample_depth",
+  "Sample_year",
   "Sample_month",
   "Sample_day",
-  "Sample_date"
+  "Sample_date",
+  "Specimen_length",
+  "Specimen_weight"
 )
 
 # Account information (for private google sheets)
@@ -269,6 +275,14 @@ read_sample_data <- function() {
     )
   }
   
+  for (column in c("Specimen_length", "Specimen_weight")) {
+    if (column %in% names(dat)) {
+      dat[[column]] <- suppressWarnings(
+        as.numeric(as.character(dat[[column]]))
+      )
+    }
+  }
+  
   dat <- construct_fallback_date(dat)
   
   if (!"Sample_name" %in% names(dat)) {
@@ -361,6 +375,28 @@ ui <- fluidPage(
         max = 1000,
         value = c(0, 1000),
         step = 1
+      ),
+      
+      h4("Filter by specimen length"),
+      
+      sliderInput(
+        inputId = "length_range",
+        label = "Specimen length:",
+        min = 0,
+        max = 1000,
+        value = c(0, 1000),
+        step = 0.01
+      ),
+      
+      h4("Filter by specimen weight"),
+      
+      sliderInput(
+        inputId = "weight_range",
+        label = "Specimen weight:",
+        min = 0,
+        max = 1000,
+        value = c(0, 1000),
+        step = 0.01
       ),
       
       hr(),
@@ -736,6 +772,70 @@ server <- function(input, output, session) {
         )
       }
     }
+    
+    # Specimen length limits
+    if ("Specimen_length" %in% names(dat)) {
+      
+      length_values <- valid_numeric_values(
+        dat$Specimen_length
+      )
+      
+      if (length(length_values) > 0) {
+        
+        minimum_length <- min(length_values)
+        maximum_length <- max(length_values)
+        
+        # A slider cannot have identical minimum and maximum values
+        if (minimum_length == maximum_length) {
+          minimum_length <- minimum_length - 0.01
+          maximum_length <- maximum_length + 0.01
+        }
+        
+        updateSliderInput(
+          session = session,
+          inputId = "length_range",
+          min = minimum_length,
+          max = maximum_length,
+          value = c(
+            minimum_length,
+            maximum_length
+          ),
+          step = 0.01
+        )
+      }
+    }
+    
+    # Specimen weight limits
+    if ("Specimen_weight" %in% names(dat)) {
+      
+      weight_values <- valid_numeric_values(
+        dat$Specimen_weight
+      )
+      
+      if (length(weight_values) > 0) {
+        
+        minimum_weight <- min(weight_values)
+        maximum_weight <- max(weight_values)
+        
+        # A slider cannot have identical minimum and maximum values
+        if (minimum_weight == maximum_weight) {
+          minimum_weight <- minimum_weight - 0.01
+          maximum_weight <- maximum_weight + 0.01
+        }
+        
+        updateSliderInput(
+          session = session,
+          inputId = "weight_range",
+          min = minimum_weight,
+          max = maximum_weight,
+          value = c(
+            minimum_weight,
+            maximum_weight
+          ),
+          step = 0.01
+        )
+      }
+    }
   })
   
   # --------------------------------------------------------------
@@ -846,6 +946,46 @@ server <- function(input, output, session) {
           (
             depth_values >= input$depth_range[1] &
               depth_values <= input$depth_range[2]
+          ),
+        ,
+        drop = FALSE
+      ]
+    }
+    
+    # Specimen length range filter
+    if (
+      !is.null(input$length_range) &&
+      length(input$length_range) == 2 &&
+      "Specimen_length" %in% names(dat)
+    ) {
+      
+      length_values <- dat$Specimen_length
+      
+      dat <- dat[
+        is.na(length_values) |
+          (
+            length_values >= input$length_range[1] &
+              length_values <= input$length_range[2]
+          ),
+        ,
+        drop = FALSE
+      ]
+    }
+    
+    # Specimen weight range filter
+    if (
+      !is.null(input$weight_range) &&
+      length(input$weight_range) == 2 &&
+      "Specimen_weight" %in% names(dat)
+    ) {
+      
+      weight_values <- dat$Specimen_weight
+      
+      dat <- dat[
+        is.na(weight_values) |
+          (
+            weight_values >= input$weight_range[1] &
+              weight_values <= input$weight_range[2]
           ),
         ,
         drop = FALSE
