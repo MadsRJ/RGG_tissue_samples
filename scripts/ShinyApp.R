@@ -1,14 +1,15 @@
 # Load libraries
-library(shiny)
-library(rsconnect)
-library(googlesheets4)
-library(leaflet)
-library(htmltools)
-library(viridisLite)
-library(dplyr)
-library(DT)
-library(rsconnect)
-library(curl)
+packages <- c(
+  "shiny", "rsconnect", "googlesheets4", "leaflet",
+  "htmltools", "viridisLite", "dplyr", "DT", "curl"
+)
+
+install.packages(
+  setdiff(packages, rownames(installed.packages())),
+  repos = "https://cloud.r-project.org"
+)
+
+lapply(packages, library, character.only = TRUE)
 
 # ================================================================
 # Configuration
@@ -23,6 +24,7 @@ gs4_deauth()
 # They are handled separately with sliders or search.
 excluded_filter_columns <- c(
   "Sample_name",
+  "Sample_name_initial",
   "Sample_lat",
   "Sample_lon",
   "Sample_depth",
@@ -1225,9 +1227,7 @@ server <- function(input, output, session) {
 # Run the application
 # ================================================================
 
-shiny::runApp(
-  shiny::shinyApp(
-    ui = ui,
-    server = server
-  )
+shinyApp(
+  ui = ui,
+  server = server
 )
