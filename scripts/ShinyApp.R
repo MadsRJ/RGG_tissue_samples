@@ -1,9 +1,6 @@
 # Load libraries
 packages <- c(
   "shiny", "rsconnect", "googlesheets4", "leaflet",
-  "htmltools", "viridisLite", "dplyr", "DT", "curl"# Load libraries
-packages <- c(
-  "shiny", "rsconnect", "googlesheets4", "leaflet",
   "htmltools", "viridisLite", "dplyr", "DT", "curl"
 )
 
